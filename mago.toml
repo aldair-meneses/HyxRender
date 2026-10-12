@@ -1,0 +1,13 @@
+# Mago scope: only our code. Composer-managed WordPress core, themes,
+# plugins and vendor/ are never linted, formatted or analyzed.
+# php-version is the plugin's floor, so syntax newer than PHP 8.1 is rejected.
+php-version = "8.1"
+
+[source]
+paths = ["plugin"]
+excludes = ["plugin/node_modules", "plugin/build"]
+
+# WordPress Coding Standards mandate long array syntax, so Mago enforces
+# the same instead of its default short style.
+[linter.rules.array-style]
+style = "long"

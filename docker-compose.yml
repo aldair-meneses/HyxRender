@@ -40,6 +40,9 @@ services:
 
   composer:
     build: .
+    depends_on:
+      db:
+        condition: service_healthy
     working_dir: /var/www/html
     # Run as your host UID/GID (exported by .envrc) so vendor/, web/ and
     # composer.lock stay owned by you, not root.
@@ -52,6 +55,18 @@ services:
       # Xdebug only slows Composer down here
       XDEBUG_MODE: "off"
     entrypoint: ["composer"]
+    profiles: ["tools"]
+
+  node:
+    image: node:22-bookworm-slim
+    working_dir: /var/www/html/plugin
+    user: "${COMPOSER_UID:-1000}:${COMPOSER_GID:-1000}"
+    volumes:
+      - .:/var/www/html
+    environment:
+      npm_config_cache: /tmp/npm-cache
+      npm_config_update_notifier: "false"
+    entrypoint: ["npm"]
     profiles: ["tools"]
 
 volumes:
