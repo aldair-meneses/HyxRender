@@ -14,6 +14,7 @@ use Hyx\Render\Fragment\Data\FragmentFactory;
 use Hyx\Render\Fragment\Enum\RegistrationError;
 use Hyx\Render\Fragment\Exception\FragmentRegistrationException;
 use Hyx\Render\Fragment\Validator\FragmentRegistrationValidator;
+use Hyx\Render\Fragment\Validator\RequestPolicyValidator;
 use Hyx\Render\Plugin;
 
 /**
@@ -45,6 +46,7 @@ final class FragmentRegistrationService {
 	public function register( string $name, array $args ): bool {
 		try {
 			( new FragmentRegistrationValidator() )->validate( $name, $args );
+			( new RequestPolicyValidator() )->validate( $name, $args );
 			$this->ensure_name_is_free( $name );
 			$this->ensure_template_is_allowed( $name, $args );
 		} catch ( FragmentRegistrationException $exception ) {

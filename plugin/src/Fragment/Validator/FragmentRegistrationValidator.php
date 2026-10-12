@@ -13,28 +13,28 @@ use Hyx\Render\Fragment\Enum\RegistrationError;
 use Hyx\Render\Fragment\Exception\FragmentRegistrationException;
 
 /**
- * Checks a registration's name, permission callback and renderer.
+ * Checks a registration's name, renderer and cache settings.
  */
 final class FragmentRegistrationValidator {
 
 	/**
-	 * Refuses a registration that breaks a rule.
+	 * Refuses a registration that breaks a rule, reporting the first one in this order.
 	 *
 	 * @param string               $name Fragment name.
 	 * @param array<string, mixed> $args Registration arguments.
 	 * @throws FragmentRegistrationException When a rule is broken.
 	 */
 	public function validate( string $name, array $args ): void {
-		if ( 1 !== preg_match( '#^[a-z0-9-]+/[a-z0-9-]+$#', $name ) ) {
-			throw new FragmentRegistrationException( esc_html( RegistrationError::MALFORMED_NAME->message( $name ) ) );
-		}
+		$rules = array(
+			array( RegistrationError::MALFORMED_NAME, 1 === preg_match( '#^[a-z0-9-]+/[a-z0-9-]+$#', $name ) ),
+			array( RegistrationError::AMBIGUOUS_RENDERER, $this->has_one_renderer( $args ) ),
+			array( RegistrationError::MALFORMED_CACHE, $this->has_valid_cache( $args ) ),
+		);
 
-		if ( ! is_callable( $args['permission_callback'] ?? null ) ) {
-			throw new FragmentRegistrationException( esc_html( RegistrationError::MISSING_PERMISSION_CALLBACK->message( $name ) ) );
-		}
-
-		if ( ! $this->has_one_renderer( $args ) ) {
-			throw new FragmentRegistrationException( esc_html( RegistrationError::AMBIGUOUS_RENDERER->message( $name ) ) );
+		foreach ( $rules as [ $error, $holds ] ) {
+			if ( ! $holds ) {
+				throw new FragmentRegistrationException( esc_html( $error->message( $name ) ) );
+			}
 		}
 	}
 
@@ -52,5 +52,22 @@ final class FragmentRegistrationValidator {
 		}
 
 		return null !== $template;
+	}
+
+	/**
+	 * Whether `cache` is an array with a TTL of zero or more seconds and a boolean vary_by_user.
+	 *
+	 * @param array<string, mixed> $args Registration arguments.
+	 */
+	private function has_valid_cache( array $args ): bool {
+		$cache = $args['cache'] ?? array();
+
+		if ( ! is_array( $cache ) ) {
+			return false;
+		}
+
+		$ttl = $cache['ttl'] ?? 0;
+
+		return is_int( $ttl ) && $ttl >= 0 && is_bool( $cache['vary_by_user'] ?? false );
 	}
 }

@@ -10,8 +10,8 @@ declare( strict_types=1 );
 namespace Hyx\Render\Tests\Integration;
 
 /**
- * With a TTL, a Fragment's HTML is reused per arguments (and per user when asked),
- * and anonymous GETs say shared caches may keep it.
+ * With a TTL, a Fragment's HTML is reused on the server per arguments, locale,
+ * theme and, when asked, user.
  */
 final class FragmentCacheTest extends FragmentTestCase {
 
@@ -91,6 +91,47 @@ final class FragmentCacheTest extends FragmentTestCase {
 	}
 
 	/**
+	 * Arguments that JSON can't encode, such as an infinite number, still get a cache entry of their own.
+	 */
+	public function test_arguments_json_cannot_encode_still_keep_users_apart(): void {
+		$this->register_fragment(
+			'acme/cached-amount',
+			array(
+				'args'   => array( 'amount' => array( 'type' => 'number' ) ),
+				'render' => fn( array $args ): string => sprintf( '<p>Render %d for %s</p>', ++$this->renders, $args['amount'] ),
+				'cache'  => array(
+					'ttl'          => 300,
+					'vary_by_user' => true,
+				),
+			)
+		);
+
+		wp_set_current_user( self::factory()->user->create() );
+		$first_user = $this->request( 'GET', 'acme/cached-amount', array( 'amount' => '1e999' ) );
+
+		wp_set_current_user( self::factory()->user->create() );
+		$second_user = $this->request( 'GET', 'acme/cached-amount', array( 'amount' => '1e999' ) );
+
+		$this->assertSame( '<p>Render 1 for INF</p>', $first_user['body'] );
+		$this->assertSame( '<p>Render 2 for INF</p>', $second_user['body'] );
+	}
+
+	/**
+	 * A render cached in one language is never served in another.
+	 */
+	public function test_each_locale_gets_its_own_cached_render(): void {
+		$this->register_counting_fragment( 'acme/cached-per-locale', array( 'ttl' => 300 ) );
+
+		$english = $this->request( 'GET', 'acme/cached-per-locale', array( 'category' => 'food' ) );
+
+		add_filter( 'locale', static fn(): string => 'pt_BR' );
+		$portuguese = $this->request( 'GET', 'acme/cached-per-locale', array( 'category' => 'food' ) );
+
+		$this->assertSame( '<p>Render 1 for food</p>', $english['body'] );
+		$this->assertSame( '<p>Render 2 for food</p>', $portuguese['body'] );
+	}
+
+	/**
 	 * A render cached for someone allowed is never served to someone the permission callback refuses.
 	 */
 	public function test_a_cached_render_is_never_served_past_the_permission_callback(): void {
@@ -135,57 +176,15 @@ final class FragmentCacheTest extends FragmentTestCase {
 	}
 
 	/**
-	 * An anonymous GET to a cached Fragment tells shared caches they may keep it for the TTL.
+	 * Server-side caching never tells browsers or shared caches to keep the HTML, so a login is seen at once.
 	 */
-	public function test_an_anonymous_cached_get_is_publicly_cacheable_for_its_ttl(): void {
-		$this->register_counting_fragment( 'acme/public-cache', array( 'ttl' => 300 ) );
+	public function test_a_cached_fragment_is_never_marked_publicly_cacheable(): void {
+		$this->register_counting_fragment( 'acme/server-cache-only', array( 'ttl' => 300 ) );
 
-		$response = $this->request( 'GET', 'acme/public-cache', array( 'category' => 'food' ) );
-
-		$this->assertSame( 'public, max-age=300', $response['headers']['Cache-Control'] );
-	}
-
-	/**
-	 * Logged-in requests, uncached Fragments and non-GET requests are never marked publicly cacheable.
-	 *
-	 * @dataProvider data_privately_served_requests
-	 *
-	 * @param string               $method HTTP method.
-	 * @param array<string, mixed> $cache  Cache settings.
-	 * @param string|null          $role   Role of the logged-in user, or null for a visitor.
-	 */
-	public function test_a_response_not_safe_to_share_is_never_publicly_cacheable( string $method, array $cache, ?string $role ): void {
-		$name = 'acme/private-cache-' . sanitize_title( (string) $this->dataName() );
-		$this->register_fragment(
-			$name,
-			array(
-				'methods' => array( $method ),
-				'render'  => static fn(): string => '<p>Private</p>',
-				'cache'   => $cache,
-			)
-		);
-
-		if ( null !== $role ) {
-			wp_set_current_user( self::factory()->user->create( array( 'role' => $role ) ) );
-		}
-
-		$response = $this->request( $method, $name, array(), array( 'X-WP-Nonce' => wp_create_nonce( 'wp_rest' ) ) );
+		$response = $this->request( 'GET', 'acme/server-cache-only', array( 'category' => 'food' ) );
 
 		$this->assertSame( 200, $response['status'], $response['body'] );
 		$this->assertStringNotContainsString( 'public', $response['headers']['Cache-Control'] ?? '' );
-	}
-
-	/**
-	 * Requests whose response must not land in a shared cache.
-	 *
-	 * @return array<string, array{string, array<string, mixed>, string|null}>
-	 */
-	public static function data_privately_served_requests(): array {
-		return array(
-			'logged-in user' => array( 'GET', array( 'ttl' => 300 ), 'subscriber' ),
-			'no ttl'         => array( 'GET', array(), null ),
-			'post request'   => array( 'POST', array( 'ttl' => 300 ), null ),
-		);
 	}
 
 	/**

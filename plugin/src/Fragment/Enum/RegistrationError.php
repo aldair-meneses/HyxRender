@@ -18,6 +18,9 @@ enum RegistrationError: string {
 	case DUPLICATE_NAME              = 'duplicate_name';
 	case MISSING_PERMISSION_CALLBACK = 'missing_permission_callback';
 	case AMBIGUOUS_RENDERER          = 'ambiguous_renderer';
+	case UNKNOWN_METHODS             = 'unknown_methods';
+	case MALFORMED_SCHEMA            = 'malformed_schema';
+	case MALFORMED_CACHE             = 'malformed_cache';
 	case TEMPLATE_OUTSIDE_FOLDERS    = 'template_outside_folders';
 
 	/**
@@ -38,6 +41,12 @@ enum RegistrationError: string {
 				self::MISSING_PERMISSION_CALLBACK => __( 'The "%s" Fragment needs a callable permission_callback. Use "__return_true" for a public Fragment.', 'hyx-render' ),
 				/* translators: %s: Fragment name. */
 				self::AMBIGUOUS_RENDERER          => __( 'The "%s" Fragment needs either a callable render or a template file, not both.', 'hyx-render' ),
+				/* translators: %s: Fragment name. */
+				self::UNKNOWN_METHODS             => __( 'The "%s" Fragment methods must be GET, POST, PUT, PATCH or DELETE, as a list or a comma-separated string.', 'hyx-render' ),
+				/* translators: %s: Fragment name. */
+				self::MALFORMED_SCHEMA            => __( 'The "%s" Fragment args must map each argument name to its schema array, the way register_rest_route() takes them.', 'hyx-render' ),
+				/* translators: %s: Fragment name. */
+				self::MALFORMED_CACHE             => __( 'The "%s" Fragment cache must be an array with a ttl of 0 or more seconds and a true or false vary_by_user.', 'hyx-render' ),
 				/* translators: %s: Fragment name. */
 				self::TEMPLATE_OUTSIDE_FOLDERS    => __( 'The "%s" Fragment template must be an existing file inside the plugins, mu-plugins or theme folders.', 'hyx-render' ),
 			},

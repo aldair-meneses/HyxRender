@@ -76,16 +76,33 @@ final class FragmentTemplateTest extends FragmentTestCase {
 	}
 
 	/**
+	 * A render cached under one theme is never served after switching to a theme that overrides the template.
+	 */
+	public function test_switching_theme_skips_renders_cached_under_the_old_one(): void {
+		$this->register_greeting_fragment( 'acme/cached-greeting', array( 'ttl' => 300 ) );
+
+		$before = $this->request( 'GET', 'acme/cached-greeting', array( 'name' => 'Ada' ) );
+
+		$this->switch_to_fixture_theme();
+		$after = $this->request( 'GET', 'acme/cached-greeting', array( 'name' => 'Ada' ) );
+
+		$this->assertSame( "<p>Plugin template greets Ada</p>\n", $before['body'] );
+		$this->assertSame( "<p>Theme template greets Ada</p>\n", $after['body'] );
+	}
+
+	/**
 	 * Registers a Fragment rendered by the plugin's greeting template.
 	 *
-	 * @param string $name Fragment name.
+	 * @param string               $name  Fragment name.
+	 * @param array<string, mixed> $cache Cache settings.
 	 */
-	private function register_greeting_fragment( string $name ): void {
+	private function register_greeting_fragment( string $name, array $cache = array() ): void {
 		$this->register_fragment(
 			$name,
 			array(
 				'args'     => array( 'name' => array( 'type' => 'string' ) ),
 				'template' => self::FIXTURES . '/templates/greeting.php',
+				'cache'    => $cache,
 			)
 		);
 	}

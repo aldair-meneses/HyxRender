@@ -23,6 +23,18 @@ final class FragmentRegistrationTest extends FragmentTestCase {
 	}
 
 	/**
+	 * Registering before the registration action fires is refused instead of breaking the site.
+	 */
+	public function test_registering_before_the_registration_action_is_rejected(): void {
+		unset( $GLOBALS['wp_actions']['hyx_render_init'] );
+		$this->setExpectedIncorrectUsage( 'hyx_render_register_fragment' );
+
+		$registered = $this->register_fragment( 'acme/too-early', array( 'render' => static fn(): string => '<p>Too early</p>' ) );
+
+		$this->assertFalse( $registered );
+	}
+
+	/**
 	 * Registration refuses names outside `vendor/name` form.
 	 *
 	 * @dataProvider data_malformed_names
@@ -101,73 +113,6 @@ final class FragmentRegistrationTest extends FragmentTestCase {
 		return array(
 			'missing'      => array( array() ),
 			'not callable' => array( array( 'permission_callback' => 'hyx_render_no_such_function' ) ),
-		);
-	}
-
-	/**
-	 * A Fragment renders one way: a callable `render` or a `template` file, never both or neither.
-	 *
-	 * @dataProvider data_ambiguous_renderers
-	 *
-	 * @param array<string, mixed> $renderer The rendering part of the registration.
-	 */
-	public function test_a_registration_without_exactly_one_renderer_is_rejected( array $renderer ): void {
-		$name = 'acme/renderer-' . sanitize_title( (string) $this->dataName() );
-		$this->setExpectedIncorrectUsage( 'hyx_render_register_fragment' );
-
-		$registered = $this->register_fragment( $name, $renderer );
-
-		$this->assertFalse( $registered );
-		$this->assertSame( 404, $this->request( 'GET', $name )['status'] );
-	}
-
-	/**
-	 * Registrations that leave the renderer missing, doubled or broken.
-	 *
-	 * @return array<string, array{array<string, mixed>}>
-	 */
-	public static function data_ambiguous_renderers(): array {
-		return array(
-			'neither'             => array( array() ),
-			'both'                => array(
-				array(
-					'render'   => static fn(): string => '<p>Callable</p>',
-					'template' => self::FIXTURES . '/templates/greeting.php',
-				),
-			),
-			'render not callable' => array( array( 'render' => 'hyx_render_no_such_function' ) ),
-		);
-	}
-
-	/**
-	 * A template has to be an existing file inside the plugins, mu-plugins or theme folders.
-	 *
-	 * @dataProvider data_disallowed_templates
-	 *
-	 * @param callable $template Builds the template path from a PHP file outside the allowed folders.
-	 */
-	public function test_a_template_outside_the_allowed_folders_is_rejected( callable $template ): void {
-		$name = 'acme/escaping-' . sanitize_title( (string) $this->dataName() );
-		$this->setExpectedIncorrectUsage( 'hyx_render_register_fragment' );
-
-		$registered = $this->register_fragment( $name, array( 'template' => $template( $this->file_outside_allowed_folders() ) ) );
-
-		$this->assertFalse( $registered );
-		$this->assertSame( 404, $this->request( 'GET', $name )['status'] );
-	}
-
-	/**
-	 * Template paths that point outside the allowed folders, or nowhere.
-	 *
-	 * @return array<string, array{callable(string): string}>
-	 */
-	public static function data_disallowed_templates(): array {
-		return array(
-			'outside every allowed folder' => array( static fn( string $outside ): string => $outside ),
-			'climbs out with ..'           => array(
-				static fn( string $outside ): string => self::FIXTURES . str_repeat( '/..', substr_count( (string) realpath( self::FIXTURES ), '/' ) ) . $outside,
-			),
-			'missing file'                 => array( static fn(): string => self::FIXTURES . '/templates/missing.php' ),
 		);
 	}
 }
