@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Listen for Xdebug (Docker)",
+      "type": "php",
+      "request": "launch",
+      "port": 9003,
+      "pathMappings": {
+        "/var/www/html/web/app/plugins/hyx-render": "${workspaceFolder}/plugin",
+        "/var/www/html/plugin": "${workspaceFolder}/plugin"
+      },
+      "hostname": "0.0.0.0"
+    }
+  ]
+}

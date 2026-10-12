@@ -1,0 +1,5 @@
+#!/bin/sh
+# Host shim for the container's WP-CLI. Put on PATH by direnv (.envrc) so bare
+# `wp` works from anywhere in the project. The container must be running.
+# No -T flag on purpose: keeps a TTY for interactive subcommands.
+exec docker compose exec wordpress wp --allow-root "$@"

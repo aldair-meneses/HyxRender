@@ -1,0 +1,21 @@
+#!/bin/sh
+# Pre-push guardrail: the full quality gate runs in Docker. Fails closed:
+# no Docker, no passing gate, no push.
+set -eu
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+export COMPOSER_UID="$(id -u)"
+export COMPOSER_GID="$(id -g)"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "pre-push: docker not found on PATH, refusing push." >&2
+  exit 1
+fi
+
+echo "pre-push: ensuring images are fresh..."
+docker compose build
+
+echo "pre-push: running quality gate (composer check in Docker)..."
+docker compose --profile tools run --rm composer check

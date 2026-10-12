@@ -1,0 +1,58 @@
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in .env}
+      MARIADB_DATABASE: ${DB_NAME:-wordpress}
+      MARIADB_USER: ${DB_USER:?set in .env}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?set in .env}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  wordpress:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "${WP_PORT:-8080}:80"
+    environment:
+      # Only used for the Xdebug toggle; WP itself reads .env via phpdotenv
+      XDEBUG_MODE: ${XDEBUG_MODE:-debug}
+    volumes:
+      # Whole project mounted: vendor/, web/ (composer-built) and plugin/ (your code)
+      - .:/var/www/html
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      # Host header must match WP_HOME or WP canonical-redirects to :8080 and curl sees a 301
+      test: ["CMD", "curl", "-f", "-H", "Host: localhost:8080", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  composer:
+    build: .
+    working_dir: /var/www/html
+    # Run as your host UID/GID (exported by .envrc) so vendor/, web/ and
+    # composer.lock stay owned by you, not root.
+    user: "${COMPOSER_UID:-1000}:${COMPOSER_GID:-1000}"
+    volumes:
+      - .:/var/www/html
+    environment:
+      COMPOSER_HOME: /tmp/composer-home
+      COMPOSER_CACHE_DIR: /tmp/composer-cache
+      # Xdebug only slows Composer down here
+      XDEBUG_MODE: "off"
+    entrypoint: ["composer"]
+    profiles: ["tools"]
+
+volumes:
+  db_data:
