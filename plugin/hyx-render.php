@@ -21,6 +21,8 @@ define( 'HYX_RENDER_VERSION', Plugin::VERSION );
 define( 'HYX_RENDER_FILE', __FILE__ );
 define( 'HYX_RENDER_DIR', __DIR__ );
 
+require_once __DIR__ . '/includes/functions.php';
+
 register_activation_hook( __FILE__, array( Plugin::class, 'activate' ) );
 register_deactivation_hook( __FILE__, array( Plugin::class, 'deactivate' ) );
 
