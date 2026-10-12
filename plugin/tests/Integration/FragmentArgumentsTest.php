@@ -46,6 +46,29 @@ final class FragmentArgumentsTest extends FragmentTestCase {
 	}
 
 	/**
+	 * A null default marks an argument optional, as in core: leaving it out is valid and it stays absent.
+	 */
+	public function test_a_null_default_leaves_an_omitted_argument_out(): void {
+		$this->register_fragment(
+			'acme/optional-page',
+			array(
+				'args'   => array(
+					'page' => array(
+						'type'    => 'integer',
+						'default' => null,
+					),
+				),
+				'render' => static fn( array $args ): string => (string) wp_json_encode( $args ),
+			)
+		);
+
+		$response = $this->request( 'GET', 'acme/optional-page' );
+
+		$this->assertSame( 200, $response['status'], $response['body'] );
+		$this->assertSame( '[]', $response['body'] );
+	}
+
+	/**
 	 * Arguments that break the schema are a 422 naming the argument, and the Fragment never renders.
 	 *
 	 * @dataProvider data_invalid_arguments

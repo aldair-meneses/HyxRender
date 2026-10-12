@@ -75,6 +75,19 @@ abstract class FragmentTestCase extends TestCase {
 	 * @return array{status: int|null, headers: array<string, string>, body: string}
 	 */
 	protected function request( string $method, string $name, array $params = array(), array $headers = array() ): array {
+		return $this->request_path( $method, '/hyx-render/v1/fragments/' . $name, $params, $headers );
+	}
+
+	/**
+	 * Serves a request to any REST path through a fresh REST server.
+	 *
+	 * @param string                $method  HTTP method.
+	 * @param string                $path    REST route path.
+	 * @param array<string, mixed>  $params  Query parameters for GET, body parameters otherwise.
+	 * @param array<string, string> $headers Request headers.
+	 * @return array{status: int|null, headers: array<string, string>, body: string}
+	 */
+	protected function request_path( string $method, string $path, array $params = array(), array $headers = array() ): array {
 		$_SERVER['REQUEST_METHOD'] = $method;
 		$_GET                      = 'GET' === $method ? $params : array();
 		$_POST                     = 'GET' === $method ? array() : $params;
@@ -85,7 +98,7 @@ abstract class FragmentTestCase extends TestCase {
 
 		$GLOBALS['wp_rest_server'] = null;
 		$server                    = rest_get_server();
-		$server->serve_request( '/hyx-render/v1/fragments/' . $name );
+		$server->serve_request( $path );
 
 		return array(
 			'status'  => $server->status,

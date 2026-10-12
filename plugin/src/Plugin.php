@@ -15,6 +15,7 @@ use Hyx\Render\Fragment\Hook\FragmentRouteHook;
 use Hyx\Render\Fragment\Service\FragmentArgumentsService;
 use Hyx\Render\Fragment\Service\FragmentCacheService;
 use Hyx\Render\Fragment\Service\FragmentRegistrationService;
+use Hyx\Render\Fragment\Service\FragmentRenderService;
 use Hyx\Render\Fragment\Service\FragmentResponseService;
 use Hyx\Render\Fragment\Service\TemplateLocationService;
 use Hyx\Render\Fragment\View\FragmentErrorView;
@@ -46,6 +47,7 @@ final class Plugin {
 		$fragments = new FragmentCollection();
 		$locations = new TemplateLocationService();
 		$errors    = new FragmentErrorView();
+		$renderer  = new FragmentRenderService();
 
 		self::$fragments = new FragmentRegistrationService(
 			$fragments,
@@ -54,7 +56,7 @@ final class Plugin {
 		);
 
 		new FragmentRouteHook(
-			new FragmentResponseService( $fragments, new FragmentArgumentsService(), new FragmentCacheService(), $errors ),
+			new FragmentResponseService( $fragments, new FragmentArgumentsService(), $renderer, new FragmentCacheService( $renderer ), $errors ),
 			$errors
 		);
 

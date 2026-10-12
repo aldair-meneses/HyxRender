@@ -11,9 +11,11 @@ namespace Hyx\Render\Fragment\Service;
 
 use Hyx\Render\Fragment\Data\Fragment;
 use Hyx\Render\Fragment\Data\FragmentCollection;
+use Hyx\Render\Fragment\Data\FragmentResponse;
+use Hyx\Render\Fragment\Exception\FragmentRenderException;
 use Hyx\Render\Fragment\View\FragmentErrorView;
+use Hyx\Render\Plugin;
 use WP_REST_Request;
-use WP_REST_Response;
 
 /**
  * Takes a request through the Fragment's checks, then renders it.
@@ -25,12 +27,14 @@ final class FragmentResponseService {
 	 *
 	 * @param FragmentCollection       $fragments Registered Fragments.
 	 * @param FragmentArgumentsService $arguments Reads the request's arguments.
+	 * @param FragmentRenderService    $renderer  Renders Fragments.
 	 * @param FragmentCacheService     $cache     Reuses rendered HTML.
 	 * @param FragmentErrorView        $errors    Renders error messages.
 	 */
 	public function __construct(
 		private readonly FragmentCollection $fragments,
 		private readonly FragmentArgumentsService $arguments,
+		private readonly FragmentRenderService $renderer,
 		private readonly FragmentCacheService $cache,
 		private readonly FragmentErrorView $errors,
 	) {
@@ -43,14 +47,14 @@ final class FragmentResponseService {
 	 *
 	 * @param WP_REST_Request $request Request.
 	 */
-	public function respond( WP_REST_Request $request ): WP_REST_Response {
+	public function respond( WP_REST_Request $request ): FragmentResponse {
 		$fragment = $this->requested_fragment( $request );
 
 		if ( null === $fragment ) {
 			return $this->error( __( 'Fragment not found.', 'hyx-render' ), 404 );
 		}
 
-		if ( ! in_array( $request->get_method(), $fragment->request->methods, true ) ) {
+		if ( ! in_array( $this->method( $request ), $fragment->request->methods, true ) ) {
 			return $this->error( __( 'This Fragment does not accept that HTTP method.', 'hyx-render' ), 405 );
 		}
 
@@ -68,7 +72,26 @@ final class FragmentResponseService {
 			return $this->error( __( 'Sorry, you are not allowed to see this Fragment.', 'hyx-render' ), 403 );
 		}
 
-		return $this->is_get( $request ) ? $this->cached( $fragment, $arguments ) : new WP_REST_Response( ( $fragment->render )( $arguments ) );
+		return $this->rendered( $fragment, $arguments, $request );
+	}
+
+	/**
+	 * The Fragment's HTML, through the cache for GETs, or a 500 when the render callable breaks its contract.
+	 *
+	 * @param Fragment             $fragment  Requested Fragment.
+	 * @param array<string, mixed> $arguments Sanitized arguments.
+	 * @param WP_REST_Request      $request   Request.
+	 */
+	private function rendered( Fragment $fragment, array $arguments, WP_REST_Request $request ): FragmentResponse {
+		try {
+			return new FragmentResponse(
+				$this->is_get( $request ) ? $this->cache->remember( $fragment, $arguments ) : $this->renderer->render( $fragment, $arguments )
+			);
+		} catch ( FragmentRenderException $exception ) {
+			_doing_it_wrong( 'hyx_render_register_fragment', esc_html( $exception->getMessage() ), esc_html( Plugin::VERSION ) );
+
+			return $this->error( __( 'This Fragment could not be rendered.', 'hyx-render' ), 500 );
+		}
 	}
 
 	/**
@@ -84,37 +107,21 @@ final class FragmentResponseService {
 	}
 
 	/**
-	 * The rendered HTML through the cache, marked shareable when it is safe to share.
-	 *
-	 * @param Fragment             $fragment  Requested Fragment.
-	 * @param array<string, mixed> $arguments Sanitized arguments.
-	 */
-	private function cached( Fragment $fragment, array $arguments ): WP_REST_Response {
-		$response = new WP_REST_Response( $this->cache->remember( $fragment, $arguments ) );
-
-		if ( $this->is_publicly_cacheable( $fragment ) ) {
-			$response->header( 'Cache-Control', sprintf( 'public, max-age=%d', $fragment->cache->ttl ) );
-		}
-
-		return $response;
-	}
-
-	/**
-	 * Whether shared caches may keep the response: the Fragment has a TTL and nobody is logged in.
-	 *
-	 * @param Fragment $fragment Requested Fragment.
-	 */
-	private function is_publicly_cacheable( Fragment $fragment ): bool {
-		return $fragment->cache->ttl > 0 && ! is_user_logged_in();
-	}
-
-	/**
 	 * Whether the request only reads: GETs skip the nonce and may be cached.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 */
 	private function is_get( WP_REST_Request $request ): bool {
-		return 'GET' === $request->get_method();
+		return 'GET' === $this->method( $request );
+	}
+
+	/**
+	 * The request's HTTP method, with HEAD answered as GET the way WordPress routes it.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	private function method( WP_REST_Request $request ): string {
+		return 'HEAD' === $request->get_method() ? 'GET' : $request->get_method();
 	}
 
 	/**
@@ -132,7 +139,7 @@ final class FragmentResponseService {
 	 * @param string $message Plain-text message.
 	 * @param int    $status  HTTP status.
 	 */
-	private function error( string $message, int $status ): WP_REST_Response {
-		return new WP_REST_Response( $this->errors->render( $message ), $status );
+	private function error( string $message, int $status ): FragmentResponse {
+		return new FragmentResponse( $this->errors->render( $message ), $status );
 	}
 }

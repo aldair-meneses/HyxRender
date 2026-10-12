@@ -49,13 +49,13 @@ final class FragmentArgumentsService {
 	}
 
 	/**
-	 * The default value of each argument that declares one.
+	 * The default value of each argument that declares a non-null one, matching core's route handling.
 	 *
 	 * @param array<string, array<string, mixed>> $schema Argument schema.
 	 * @return array<string, mixed>
 	 */
 	private function defaults( array $schema ): array {
-		return wp_list_pluck( array_filter( $schema, static fn( array $arg ): bool => array_key_exists( 'default', $arg ) ), 'default' );
+		return wp_list_pluck( array_filter( $schema, static fn( array $arg ): bool => null !== ( $arg['default'] ?? null ) ), 'default' );
 	}
 
 	/**

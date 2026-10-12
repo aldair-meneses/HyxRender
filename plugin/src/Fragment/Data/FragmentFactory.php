@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace Hyx\Render\Fragment\Data;
 
 use Closure;
+use Hyx\Render\Fragment\Sanitizer\HttpMethodsSanitizer;
 use Hyx\Render\Fragment\Service\TemplateLocationService;
 use Hyx\Render\Fragment\View\FragmentTemplateView;
 
@@ -45,7 +46,7 @@ final class FragmentFactory {
 			$this->renderer( $name, $args ),
 			new RequestPolicy(
 				(array) ( $args['args'] ?? array() ),
-				array_values( array_map( 'strtoupper', (array) ( $args['methods'] ?? array( 'GET' ) ) ) ),
+				( new HttpMethodsSanitizer( $args['methods'] ?? null ) )->sanitize(),
 				Closure::fromCallable( $args['permission_callback'] ),
 			),
 			new CachePolicy( (int) ( $cache['ttl'] ?? 0 ), (bool) ( $cache['vary_by_user'] ?? false ) ),

@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace Hyx\Render\Fragment\Hook;
 
+use Hyx\Render\Fragment\Data\FragmentResponse;
 use Hyx\Render\Fragment\Service\FragmentResponseService;
 use Hyx\Render\Fragment\View\FragmentErrorView;
 use WP_HTTP_Response;
@@ -70,22 +71,27 @@ final class FragmentRouteHook {
 	}
 
 	/**
-	 * Writes the namespace's responses as text/html instead of JSON.
+	 * Writes Fragment responses, and errors inside the namespace, as text/html instead of JSON.
 	 *
-	 * @mago-expect lint:no-boolean-flag-parameter
+	 * Anything else, such as an OPTIONS description or an `_envelope`, stays JSON.
+	 * `$served` is untyped because the filter runs for every REST request, and an
+	 * earlier callback may pass something other than a bool.
 	 *
-	 * @param bool             $served  Whether the request was already served.
+	 * @param mixed            $served  Whether the request was already served.
 	 * @param WP_HTTP_Response $result  Response to send.
 	 * @param WP_REST_Request  $request Request.
 	 * @param WP_REST_Server   $server  Server instance.
 	 */
-	public function serve_html( bool $served, WP_HTTP_Response $result, WP_REST_Request $request, WP_REST_Server $server ): bool {
-		if ( $served || ! $this->is_route_under( $request, '' ) ) {
+	public function serve_html( mixed $served, WP_HTTP_Response $result, WP_REST_Request $request, WP_REST_Server $server ): mixed {
+		if ( $served || ! $this->is_html_response( $result, $request ) ) {
 			return $served;
 		}
 
 		$server->send_header( 'Content-Type', 'text/html; charset=' . get_option( 'blog_charset' ) );
-		echo $this->html( $result ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fragment HTML is the developer's rendered markup; errors are escaped by the view.
+
+		if ( 'HEAD' !== $request->get_method() ) {
+			echo $this->html( $result ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fragment HTML is the developer's rendered markup; errors are escaped by the view.
+		}
 
 		return true;
 	}
@@ -99,18 +105,32 @@ final class FragmentRouteHook {
 	 * @param WP_HTTP_Response $result Response to send.
 	 */
 	private function html( WP_HTTP_Response $result ): string {
+		if ( $result instanceof FragmentResponse ) {
+			return $result->html;
+		}
+
 		$data = $result->get_data();
 
-		return is_string( $data ) ? $data : $this->errors->render( (string) ( $data['message'] ?? '' ) );
+		return $this->errors->render( (string) ( $data['message'] ?? '' ) );
 	}
 
 	/**
-	 * Whether the request's route sits under a path of this namespace.
+	 * Whether the response goes out as HTML: a Fragment's own answer, or an error WordPress raised inside the namespace.
+	 *
+	 * @param WP_HTTP_Response $result  Response to send.
+	 * @param WP_REST_Request  $request Request.
+	 */
+	private function is_html_response( WP_HTTP_Response $result, WP_REST_Request $request ): bool {
+		return $result instanceof FragmentResponse || ( $result->get_status() >= 400 && $this->is_route_under( $request, '' ) );
+	}
+
+	/**
+	 * Whether the request's route sits under a path of this namespace, ignoring case as WordPress's route matching does.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @param string          $path    Path inside the namespace.
 	 */
 	private function is_route_under( WP_REST_Request $request, string $path ): bool {
-		return str_starts_with( $request->get_route(), self::ROUTE_NAMESPACE . $path );
+		return 0 === stripos( $request->get_route(), self::ROUTE_NAMESPACE . $path );
 	}
 }

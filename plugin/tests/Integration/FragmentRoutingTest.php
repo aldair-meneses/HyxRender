@@ -35,6 +35,52 @@ final class FragmentRoutingTest extends FragmentTestCase {
 	}
 
 	/**
+	 * A render callable that echoes its HTML instead of returning it is served the same way.
+	 */
+	public function test_echoed_html_from_the_render_callable_is_served(): void {
+		$this->register_fragment(
+			'acme/echoing',
+			array(
+				'render' => static function (): void {
+					echo '<p>Echoed</p>';
+				},
+			)
+		);
+
+		$response = $this->request( 'GET', 'acme/echoing' );
+
+		$this->assertSame( 200, $response['status'], $response['body'] );
+		$this->assertSame( '<p>Echoed</p>', $response['body'] );
+	}
+
+	/**
+	 * A render callable that returns something other than HTML is a 500 in HTML, and the developer is told.
+	 *
+	 * @dataProvider data_non_string_renders
+	 *
+	 * @param mixed $result What the render callable returns.
+	 */
+	public function test_a_render_callable_returning_a_non_string_is_a_500_as_html( mixed $result ): void {
+		$name = 'acme/non-string-' . sanitize_title( (string) $this->dataName() );
+		$this->register_fragment( $name, array( 'render' => static fn(): mixed => $result ) );
+		$this->setExpectedIncorrectUsage( 'hyx_render_register_fragment' );
+
+		$this->assert_html_error( 500, $this->request( 'GET', $name ) );
+	}
+
+	/**
+	 * Render results that aren't HTML.
+	 *
+	 * @return array<string, array{mixed}>
+	 */
+	public static function data_non_string_renders(): array {
+		return array(
+			'integer' => array( 42 ),
+			'array'   => array( array( '<p>In an array</p>' ) ),
+		);
+	}
+
+	/**
 	 * A name nobody registered is a 404, still answered in HTML.
 	 */
 	public function test_an_unknown_fragment_returns_404_as_html(): void {
