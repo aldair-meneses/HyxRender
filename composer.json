@@ -14,6 +14,7 @@
     "roots/wp-config": "^1.0",
     "vlucas/phpdotenv": "^5.0",
     "wpackagist-plugin/query-monitor": "*",
+    "wpackagist-theme/generatepress": "^3.6",
     "wpackagist-theme/twentytwentyfive": "*"
   },
   "repositories": [

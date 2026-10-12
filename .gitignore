@@ -4,6 +4,7 @@ web/app/plugins/*
 # Ignore Composer-installed mu-plugin directories; single-file mu-plugins are tracked intentionally
 web/app/mu-plugins/*/
 web/app/themes/twentytwentyfive/
+web/app/themes/generatepress/
 web/app/upgrade
 web/app/uploads/*
 !web/app/uploads/.gitkeep

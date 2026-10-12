@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4d81e8fb380ad7c65fc19f08877fe92a",
+    "content-hash": "1e117eecf194badbeffb3577655e7013",
     "packages": [
         {
             "name": "composer/installers",
@@ -216,7 +216,7 @@
         },
         {
             "name": "hyx/hyx-render",
-            "version": "dev-main",
+            "version": "dev-master",
             "dist": {
                 "type": "path",
                 "url": "plugin",
@@ -1090,6 +1090,24 @@
             },
             "type": "wordpress-plugin",
             "homepage": "https://wordpress.org/plugins/query-monitor/"
+        },
+        {
+            "name": "wpackagist-theme/generatepress",
+            "version": "3.6.1",
+            "source": {
+                "type": "svn",
+                "url": "https://themes.svn.wordpress.org/generatepress/",
+                "reference": "3.6.1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/theme/generatepress.3.6.1.zip"
+            },
+            "require": {
+                "composer/installers": "^1.0 || ^2.0"
+            },
+            "type": "wordpress-theme",
+            "homepage": "https://wordpress.org/themes/generatepress/"
         },
         {
             "name": "wpackagist-theme/twentytwentyfive",
