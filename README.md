@@ -14,6 +14,9 @@ WordPress core and public plugins are Composer-managed. Your plugin stays in
   - `plugin/tests/`: PHPUnit integration tests.
   - `plugin/assets/src/`: editor and front-end runtime JS, built into
     `plugin/build/` (gitignored) by `plugin/package.json`.
+- `examples/hyx-render-demo/`: demo plugin (development only, never shipped).
+  Live at `web/app/plugins/hyx-render-demo` via symlink, installed as a dev
+  dependency. See "Demo plugin" below.
 - `config/application.php` + `config/environments/`: WP config (Roots wp-config)
 - `web/`: docroot. `web/wp` (core), `web/app/plugins|themes` (composer-built,
   gitignored). `web/index.php`, `web/wp-config.php` are tracked stubs.
@@ -51,6 +54,9 @@ docker compose exec wordpress wp --allow-root core install \
   --url=http://localhost:8080 --title='HyxRender Dev' \
   --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email
 docker compose exec wordpress wp --allow-root plugin activate hyx-render
+docker compose exec wordpress wp --allow-root theme activate generatepress
+docker compose exec wordpress wp --allow-root plugin activate hyx-render-demo
+docker compose exec wordpress wp --allow-root hyx-demo seed
 ```
 
 Site: `http://localhost:8080`, admin: `http://localhost:8080/wp/wp-admin/`.
@@ -96,6 +102,31 @@ Preconfigured: `host.docker.internal:9003`, `start_with_request=yes`.
 Full speed when not debugging: `XDEBUG_MODE=off` in `.env`, then
 `docker compose up -d`. The "Could not connect" log line just means no IDE
 listener is attached.
+
+## Demo plugin
+
+`examples/hyx-render-demo/` provides the demo data HyxRender examples build
+on: a `{prefix}hyx_transactions` table, its REST API and WP-CLI commands. The
+active theme is GeneratePress.
+
+```bash
+wp plugin activate hyx-render-demo   # creates the table if it is missing
+wp hyx-demo seed                     # adds 25 random transactions
+wp hyx-demo seed --count=100
+wp hyx-demo reset                    # drops and recreates the table, empty
+```
+
+REST API, namespace `hyx/v1`:
+
+- `GET /transactions`: public. `page`, `per_page` (max 100), `type`
+  (`income` or `expense`), `category`. Sends `X-WP-Total` and
+  `X-WP-TotalPages`.
+- `GET /transactions/{id}`: public.
+- `POST /transactions`, `PUT|PATCH /transactions/{id}`,
+  `DELETE /transactions/{id}`: users who can `edit_posts`.
+
+Without pretty permalinks, use the `?rest_route=` form, e.g.
+`http://localhost:8080/?rest_route=/hyx/v1/transactions&type=income`.
 
 ## Tests
 
