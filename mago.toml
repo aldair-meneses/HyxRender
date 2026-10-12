@@ -11,3 +11,13 @@ excludes = ["plugin/node_modules", "plugin/build"]
 # the same instead of its default short style.
 [linter.rules.array-style]
 style = "long"
+
+# WordPress core does not support named arguments: its parameter names are not
+# part of the public API and change between releases.
+[linter.rules.literal-named-argument]
+enabled = false
+
+# WordPress keeps its state in globals ($wp_theme_directories, $wp_plugin_paths,
+# $wp_rest_server), and the plugin has to read them.
+[linter.rules.no-global]
+enabled = false
