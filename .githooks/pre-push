@@ -19,3 +19,7 @@ docker compose build
 
 echo "pre-push: running quality gate (composer check in Docker)..."
 docker compose --profile tools run --rm composer check
+
+echo "pre-push: building assets and checking size budgets (npm in Docker)..."
+docker compose --profile tools run --rm --entrypoint sh node -c \
+  '[ -d node_modules ] || npm ci; npm run build && npm run size'

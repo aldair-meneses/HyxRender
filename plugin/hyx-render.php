@@ -3,7 +3,7 @@
  * Plugin Name: Hyx Render
  * Description: Starter scaffold for HyxRender plugin development.
  * Version: 0.1.0
- * Requires at least: 6.0
+ * Requires at least: 6.9
  * Requires PHP: 8.1
  * Author: You
  * License: GPL-2.0-or-later

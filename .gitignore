@@ -26,6 +26,13 @@ web/.htaccess
 /vendor
 auth.json
 
+# Node (editor and runtime assets)
+plugin/node_modules/
+plugin/build/
+
+# PHPUnit
+.phpunit.result.cache
+
 # WP-CLI
 wp-cli.local.yml
 

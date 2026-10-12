@@ -1,0 +1,5 @@
+#!/bin/sh
+# Host shim for npm-in-Docker, scoped to plugin/. Put on PATH by direnv (.envrc)
+# so bare `npm` never touches host Node. Runs as your UID/GID (see .envrc) so
+# node_modules/ and build/ stay owned by you.
+exec docker compose --profile tools run --rm node "$@"

@@ -4,9 +4,18 @@
   xmlns="https://getpsalm.org/schema/config"
   xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
   errorLevel="4"
+  phpVersion="8.1"
   resolveFromConfigFile="true"
 >
   <projectFiles>
     <directory name="plugin"/>
+    <ignoreFiles allowMissingFiles="true">
+      <directory name="plugin/tests"/>
+      <directory name="plugin/node_modules"/>
+      <directory name="plugin/build"/>
+    </ignoreFiles>
   </projectFiles>
+  <plugins>
+    <pluginClass class="PsalmWordPress\Plugin"/>
+  </plugins>
 </psalm>
