@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9d79319847f139ff7256e9d1517eb903",
+    "content-hash": "5305353668db169d62050b0045f3e41a",
     "packages": [
         {
             "name": "composer/installers",
@@ -2856,6 +2856,33 @@
                 "source": "https://github.com/psalm/psalm-plugin-wordpress"
             },
             "time": "2024-04-01T10:36:11+00:00"
+        },
+        {
+            "name": "hyx/hyx-render-demo",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "examples/hyx-render-demo",
+                "reference": "097e6aae766c0f600037b2288379e90a52942b0c"
+            },
+            "require": {
+                "composer/installers": "^2.0",
+                "php": ">=8.1"
+            },
+            "type": "wordpress-plugin",
+            "autoload": {
+                "psr-4": {
+                    "Hyx\\RenderDemo\\": "src/"
+                }
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "HyxRender demo plugin (development only, never shipped)",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "kelunik/certificate",
