@@ -110,8 +110,6 @@ Deliberately not gated: Mago `format` (its style conflicts with WPCS spacing,
 e.g. `if ( true )`) and Mago `analyze` (no WordPress stubs; Psalm with the
 humanmade WP plugin covers analysis instead).
 
-## Git
-
-Tracked: `composer.json`, `composer.lock`, `plugin/`, `config/`, `web/index.php`,
-`web/wp-config.php`, `bin/`, `.envrc`, Docker files, `.env.example`. Ignored: `vendor/`, `web/wp`,
-`web/app/plugins/*`, `web/app/uploads`, `.env`.
+Mago is scoped to `plugin/` via `mago.toml`, so the composer-managed theme,
+core and vendor code is never touched. Its `array-style` rule is set to
+`long` to match WPCS.
