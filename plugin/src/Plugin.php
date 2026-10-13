@@ -9,8 +9,10 @@ declare( strict_types=1 );
 
 namespace Hyx\Render;
 
+use Hyx\Render\Fragment\Data\CachePolicyFactory;
 use Hyx\Render\Fragment\Data\FragmentCollection;
 use Hyx\Render\Fragment\Data\FragmentFactory;
+use Hyx\Render\Fragment\Data\RequestPolicyFactory;
 use Hyx\Render\Fragment\Hook\FragmentRouteHook;
 use Hyx\Render\Fragment\Service\FragmentArgumentsService;
 use Hyx\Render\Fragment\Service\FragmentCacheService;
@@ -45,14 +47,12 @@ final class Plugin {
 	 */
 	public static function boot(): void {
 		$fragments = new FragmentCollection();
-		$locations = new TemplateLocationService();
 		$errors    = new FragmentErrorView();
 		$renderer  = new FragmentRenderService();
 
 		self::$fragments = new FragmentRegistrationService(
 			$fragments,
-			new FragmentFactory( new FragmentTemplateView(), $locations ),
-			$locations
+			new FragmentFactory( new FragmentTemplateView( new TemplateLocationService() ), new RequestPolicyFactory(), new CachePolicyFactory() )
 		);
 
 		new FragmentRouteHook(
